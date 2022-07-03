@@ -14,6 +14,7 @@ function Vue (options) {
   this._init(options)
 }
 
+// initMixin 作用是,向 Vue 原型链中添加_init初始化方法
 initMixin(Vue)
 stateMixin(Vue)
 eventsMixin(Vue)

@@ -1,6 +1,6 @@
 /*!
  * Vue.js v2.6.0
- * (c) 2014-2019 Evan You
+ * (c) 2014-2022 Evan You
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -1403,6 +1403,7 @@
    * Validate component names
    */
   function checkComponents (options) {
+    // 校验options的组件里面,有没有不合规的组件名字,其中校验包括组件名是不是html 标签名,或者是保留的标签名(取决于平台)
     for (var key in options.components) {
       validateComponentName(key);
     }
@@ -1428,14 +1429,29 @@
    * Object-based format.
    */
   function normalizeProps (options, vm) {
+    // 去除 options.props
     var props = options.props;
+    // 如果没有 props 直接返回
     if (!props) { return }
     var res = {};
     var i, val, name;
+    // 如果 props 是数组字符串形式,就转换成对象形式
+    // ['name','age'] => 
+    /**
+     * {
+     *  name: {
+     *    type: null
+     *  },
+     *  age: {
+     *    type:null
+     *  }
+     * }
+     */
     if (Array.isArray(props)) {
       i = props.length;
       while (i--) {
         val = props[i];
+        // 数组字符串形式的 props 只允许值是字符串形式的
         if (typeof val === 'string') {
           name = camelize(val);
           res[name] = { type: null };
@@ -1444,6 +1460,7 @@
         }
       }
     } else if (isPlainObject(props)) {
+      // props 是一个普通的对象形式
       for (var key in props) {
         val = props[key];
         name = camelize(key);
@@ -1522,16 +1539,19 @@
     child,
     vm
   ) {
+    // 如果不是生产环境,就校验组件
     {
       checkComponents(child);
     }
-
-    if (typeof child === 'function') {
+    // FIXME: ??? 不是很理解
+    if (typeof child === "function") {
       child = child.options;
     }
-
+    // 初始化 props
     normalizeProps(child, vm);
+    // 初始化注入
     normalizeInject(child, vm);
+    // 初始化指令
     normalizeDirectives(child);
 
     // Apply extends and mixins on the child options,
@@ -1559,11 +1579,11 @@
         mergeField(key);
       }
     }
-    function mergeField (key) {
+    function mergeField(key) {
       var strat = strats[key] || defaultStrat;
       options[key] = strat(parent[key], child[key], vm, key);
     }
-    return options
+    return options;
   }
 
   /**
@@ -4839,10 +4859,13 @@
 
   function initMixin (Vue) {
     Vue.prototype._init = function (options) {
+      // 暂存当前组件或Vue实例的this指向
       var vm = this;
       // a uid
+      // 生成组件或示例的唯一 uid
       vm._uid = uid$3++;
 
+      // ======= 用于性能分析 ======
       var startTag, endTag;
       /* istanbul ignore if */
       if (config.performance && mark) {
@@ -4850,16 +4873,19 @@
         endTag = "vue-perf-end:" + (vm._uid);
         mark(startTag);
       }
+      // =================
 
       // a flag to avoid this being observed
       vm._isVue = true;
       // merge options
+      // 合并 options, 组件和实例 Vue 是不一样的
       if (options && options._isComponent) {
         // optimize internal component instantiation
         // since dynamic options merging is pretty slow, and none of the
         // internal component options needs special treatment.
         initInternalComponent(vm, options);
       } else {
+        // 如果是实例模式用 vue 的合并 options逻辑
         vm.$options = mergeOptions(
           resolveConstructorOptions(vm.constructor),
           options || {},
@@ -4867,11 +4893,16 @@
         );
       }
       /* istanbul ignore else */
+      // 此处的 proxy 主要是校验模版语法中一些为定于的语法是不是内置的,并且一些属性名字不能以$和_开头
+      // 1. Number(xxx) 这个就是内置语法,就应该正常运行
+      // 2. $name 这种就应该给出警告
       {
         initProxy(vm);
       }
       // expose real self
+      // 暴露当前 vm 实例到_self上面
       vm._self = vm;
+      // 初始化生命周期
       initLifecycle(vm);
       initEvents(vm);
       initRender(vm);
@@ -4894,7 +4925,10 @@
     };
   }
 
+  // 初始化内部组件
   function initInternalComponent (vm, options) {
+    // 将实例 options 上面的部分配置保存到$options
+    // TIPS: 代码小技巧,通过 opts 变量来修改 vm.$options,避免多个 vm.$options导致代码不美观
     var opts = vm.$options = Object.create(vm.constructor.options);
     // doing this because it's faster than dynamic enumeration.
     var parentVnode = options._parentVnode;
@@ -4958,6 +4992,7 @@
     this._init(options);
   }
 
+  // initMixin 作用是,向 Vue 原型链中添加_init初始化方法
   initMixin(Vue);
   stateMixin(Vue);
   eventsMixin(Vue);

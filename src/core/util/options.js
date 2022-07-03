@@ -271,8 +271,9 @@ const defaultStrat = function (parentVal: any, childVal: any): any {
  * Validate component names
  */
 function checkComponents (options: Object) {
+  // 校验options的组件里面,有没有不合规的组件名字,其中校验包括组件名是不是html 标签名,或者是保留的标签名(取决于平台)
   for (const key in options.components) {
-    validateComponentName(key)
+    validateComponentName(key);
   }
 }
 
@@ -296,14 +297,29 @@ export function validateComponentName (name: string) {
  * Object-based format.
  */
 function normalizeProps (options: Object, vm: ?Component) {
+  // 去除 options.props
   const props = options.props
+  // 如果没有 props 直接返回
   if (!props) return
   const res = {}
   let i, val, name
+  // 如果 props 是数组字符串形式,就转换成对象形式
+  // ['name','age'] => 
+  /**
+   * {
+   *  name: {
+   *    type: null
+   *  },
+   *  age: {
+   *    type:null
+   *  }
+   * }
+   */
   if (Array.isArray(props)) {
     i = props.length
     while (i--) {
       val = props[i]
+      // 数组字符串形式的 props 只允许值是字符串形式的
       if (typeof val === 'string') {
         name = camelize(val)
         res[name] = { type: null }
@@ -312,6 +328,7 @@ function normalizeProps (options: Object, vm: ?Component) {
       }
     }
   } else if (isPlainObject(props)) {
+    // props 是一个普通的对象形式
     for (const key in props) {
       val = props[key]
       name = camelize(key)
@@ -390,17 +407,20 @@ export function mergeOptions (
   child: Object,
   vm?: Component
 ): Object {
-  if (process.env.NODE_ENV !== 'production') {
-    checkComponents(child)
+  // 如果不是生产环境,就校验组件
+  if (process.env.NODE_ENV !== "production") {
+    checkComponents(child);
   }
-
-  if (typeof child === 'function') {
-    child = child.options
+  // FIXME: ??? 不是很理解
+  if (typeof child === "function") {
+    child = child.options;
   }
-
-  normalizeProps(child, vm)
-  normalizeInject(child, vm)
-  normalizeDirectives(child)
+  // 初始化 props
+  normalizeProps(child, vm);
+  // 初始化注入
+  normalizeInject(child, vm);
+  // 初始化指令
+  normalizeDirectives(child);
 
   // Apply extends and mixins on the child options,
   // but only if it is a raw options object that isn't
@@ -408,30 +428,30 @@ export function mergeOptions (
   // Only merged options has the _base property.
   if (!child._base) {
     if (child.extends) {
-      parent = mergeOptions(parent, child.extends, vm)
+      parent = mergeOptions(parent, child.extends, vm);
     }
     if (child.mixins) {
       for (let i = 0, l = child.mixins.length; i < l; i++) {
-        parent = mergeOptions(parent, child.mixins[i], vm)
+        parent = mergeOptions(parent, child.mixins[i], vm);
       }
     }
   }
 
-  const options = {}
-  let key
+  const options = {};
+  let key;
   for (key in parent) {
-    mergeField(key)
+    mergeField(key);
   }
   for (key in child) {
     if (!hasOwn(parent, key)) {
-      mergeField(key)
+      mergeField(key);
     }
   }
-  function mergeField (key) {
-    const strat = strats[key] || defaultStrat
-    options[key] = strat(parent[key], child[key], vm, key)
+  function mergeField(key) {
+    const strat = strats[key] || defaultStrat;
+    options[key] = strat(parent[key], child[key], vm, key);
   }
-  return options
+  return options;
 }
 
 /**
